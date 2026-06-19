@@ -5,8 +5,9 @@ import SiteFooter from './site-footer'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'MyTrine - AI Health Companion',
-  description: 'Your personal AI health consultation assistant',
+  title: 'MyTrine — Zero Effort. Maximum Transformation.',
+  description:
+    'AI-powered 90-day body transformation for the current generation. Get a personalized plan with diet, workouts, food ordering, budget tracking, and before/after vault.',
 }
 
 export default function RootLayout({
