@@ -1,5 +1,5 @@
-import LandingClient from "../landing-client";
+import PersonalizedDashboardClient from "../personalized-dashboard-client";
 
 export default function HomePage() {
-  return <LandingClient />;
+  return <PersonalizedDashboardClient />;
 }

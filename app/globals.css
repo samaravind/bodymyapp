@@ -3,7 +3,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-glass: rgba(255, 255, 255, 0.72);
   --color-glass-border: rgba(255, 255, 255, 0.25);
@@ -20,20 +20,27 @@ body {
   font-family: var(--font-sans);
 }
 
+.section-eyebrow {
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  color: rgba(17, 19, 15, 0.5);
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 transparent;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 @keyframes message-in {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-message-in {
@@ -41,23 +48,155 @@ body {
 }
 
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fade-in {
   animation: fade-in 0.3s ease-out both;
 }
 
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s ease-out both;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(132, 204, 22, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(132, 204, 22, 0.4); }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(132, 204, 22, 0.08), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes mytrine-ring-breathe {
+  0%, 100% { filter: drop-shadow(0 0 10px rgba(185, 255, 79, 0.10)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 18px rgba(185, 255, 79, 0.18)); transform: scale(1.015); }
+}
+
+@keyframes mytrine-progress-in {
+  from { transform: scaleX(0.82); opacity: 0.78; }
+  to { transform: scaleX(1); opacity: 1; }
+}
+
+@keyframes mytrine-live-in {
+  from { opacity: 0.82; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mytrine-progress-ring {
+  animation: mytrine-ring-breathe 2.8s ease-in-out infinite;
+}
+
+.mytrine-progress-fill {
+  transform-origin: left center;
+  animation: mytrine-progress-in 280ms ease-out both;
+}
+
+.mytrine-live-card {
+  animation: mytrine-live-in 280ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .animate-message-in,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-pulse-glow,
+  .animate-float,
+  .animate-shimmer,
+  .mytrine-progress-ring,
+  .mytrine-progress-fill,
+  .mytrine-live-card {
+    animation: none !important;
+  }
+}
+
 .phone-3d {
-  transform: translateX(-50%) perspective(1050px) rotateY(-17deg) rotateX(3deg) rotateZ(6deg) scale(0.72);
+  transform: perspective(1250px) rotateY(-12deg) rotateX(4deg) rotateZ(2.2deg) translateZ(0);
   transform-style: preserve-3d;
+  backface-visibility: hidden;
+}
+
+.phone-device::before {
+  content: "";
+  position: absolute;
+  inset: 18px -14px 18px auto;
+  width: 18px;
+  border-radius: 0 34px 34px 0;
+  background: linear-gradient(90deg, #101827, #020617 68%, rgba(255, 255, 255, 0.10));
+  transform: translateZ(-32px);
+  box-shadow: 20px 26px 44px rgba(0, 0, 0, 0.34);
+}
+
+.phone-device::after {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border-radius: 40px;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.28), transparent 12%, transparent 70%, rgba(255, 255, 255, 0.10)),
+    linear-gradient(245deg, rgba(132, 204, 22, 0.12), transparent 28%);
+  mix-blend-mode: screen;
+  opacity: 0.42;
 }
 
 .phone-screen {
-  transform: translateZ(18px);
+  transform: translateZ(22px);
+}
+
+.phone-glass {
+  background:
+    linear-gradient(118deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.08) 13%, transparent 28%),
+    linear-gradient(300deg, transparent 58%, rgba(255, 255, 255, 0.10) 74%, transparent 92%),
+    radial-gradient(circle at 20% 8%, rgba(255, 255, 255, 0.18), transparent 22%);
+  opacity: 0.55;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
-    inset 18px 0 28px rgba(255, 255, 255, 0.03),
-    inset -20px 0 34px rgba(0, 0, 0, 0.28);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 0 28px rgba(255, 255, 255, 0.03);
+}
+
+@media (max-height: 760px) and (min-width: 1024px) {
+  .phone-3d {
+    transform: perspective(1250px) rotateY(-12deg) rotateX(4deg) rotateZ(2.2deg) scale(0.9);
+  }
+}
+
+/* Smooth scroll offset for fixed nav */
+[id] {
+  scroll-margin-top: 80px;
+}
+
+/* Highlight animation for FAQ */
+details[open] summary {
+  color: #a3e635;
 }
