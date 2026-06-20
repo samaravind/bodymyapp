@@ -8,6 +8,20 @@ type ChatMessage = {
 const questions = [
   {
     section: "Personal Details",
+    question: "What is your name?",
+    options: [],
+    inputType: "text",
+    placeholder: "Enter your name",
+  },
+  {
+    section: "Personal Details",
+    question: "What is your age?",
+    options: [],
+    inputType: "number",
+    placeholder: "Enter your age",
+  },
+  {
+    section: "Personal Details",
     question: "Choose your gender",
     options: ["Male", "Female"],
   },
@@ -18,23 +32,24 @@ const questions = [
   },
   {
     section: "Personal Details",
-    question: "What is your age group?",
-    options: ["Below 18", "18-25", "26-40", "Above 40"],
+    question: "What is your height?",
+    options: [],
+    inputType: "number",
+    placeholder: "Enter height in cm",
   },
   {
     section: "Personal Details",
-    question: "What is your height range?",
-    options: ["Below 150 cm", "150-165 cm", "166-180 cm", "Above 180 cm"],
+    question: "What is your current weight?",
+    options: [],
+    inputType: "number",
+    placeholder: "Enter current weight in kg",
   },
   {
     section: "Personal Details",
-    question: "What is your current weight range?",
-    options: ["Below 50 kg", "50-70 kg", "71-90 kg", "Above 90 kg"],
-  },
-  {
-    section: "Personal Details",
-    question: "What is your target?",
-    options: ["Lose 5 kg", "Lose 10 kg", "Gain 5 kg", "Maintain Weight"],
+    question: "What is your target weight?",
+    options: [],
+    inputType: "number",
+    placeholder: "Enter target weight in kg",
   },
 
   {
@@ -88,6 +103,11 @@ const questions = [
     section: "Lifestyle Analysis",
     question: "Do you exercise currently?",
     options: ["No Exercise", "Walking Only", "Gym", "Yoga / Sports"],
+  },
+  {
+    section: "Lifestyle Analysis",
+    question: "What is your daily schedule like?",
+    options: ["Student", "Office 9-5", "Shift Work", "Freelance / Flexible"],
   },
   {
     section: "Lifestyle Analysis",

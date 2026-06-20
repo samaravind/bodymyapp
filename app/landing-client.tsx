@@ -2,8 +2,8 @@
 
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import ConsultationClient from "./consultation-client";
 import ProfileMenu from "./profile-menu";
 
 type IconName =
@@ -187,13 +187,9 @@ function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: str
 }
 
 export default function LandingClient() {
-  const [started, setStarted] = useState(false);
+  const router = useRouter();
 
-  if (started) {
-    return <ConsultationClient onClose={() => setStarted(false)} />;
-  }
-
-  return <LandingPage onStart={() => setStarted(true)} />;
+  return <LandingPage onStart={() => router.push("/consultation")} />;
 }
 
 function LandingPage({ onStart }: { onStart: () => void }) {
@@ -1056,7 +1052,7 @@ function AuthNavControls({ onStart }: { onStart: () => void }) {
   if (isSignedIn || (!isLoaded && wasSignedIn)) {
     return (
       <div className="flex items-center gap-3">
-        <button onClick={onStart} className="hidden rounded-2xl bg-[linear-gradient(135deg,#b9ff4f,#00d474)] px-5 py-3 text-sm font-black text-[#031008] transition hover:-translate-y-0.5 sm:inline-flex">Start Free Assessment</button>
+        <Link href="/consultation" className="hidden rounded-2xl bg-[linear-gradient(135deg,#b9ff4f,#00d474)] px-5 py-3 text-sm font-black text-[#031008] transition hover:-translate-y-0.5 sm:inline-flex">Dashboard</Link>
         <ProfileMenu />
       </div>
     );

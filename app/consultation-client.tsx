@@ -1,5 +1,7 @@
 "use client";
 
+import { useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ProfileMenu from "./profile-menu";
 
@@ -8,26 +10,80 @@ type QuestionData = {
   question: string;
   options: string[];
   completed?: boolean;
+  inputType?: "text" | "number";
+  placeholder?: string;
   questionNumber?: number;
   totalQuestions?: number;
 };
 
+type AnswerRecord = {
+  answer: string;
+  question: string;
+  section: string;
+};
+
 const firstQuestion: QuestionData = {
   section: "Personal Details",
-  question: "Choose your gender",
-  options: ["Male", "Female"],
+  question: "What is your name?",
+  options: [],
+  inputType: "text",
+  placeholder: "Enter your name",
   questionNumber: 1,
-  totalQuestions: 22,
+  totalQuestions: 24,
 };
 
 export default function ConsultationClient({ onClose }: { onClose?: () => void }) {
+  const router = useRouter();
+  const { user } = useUser();
   const [currentQuestion, setCurrentQuestion] =
     useState<QuestionData>(firstQuestion);
 
   const [answers, setAnswers] = useState<string[]>([]);
+  const [answerRecords, setAnswerRecords] = useState<AnswerRecord[]>([]);
   const [selectedOption, setSelectedOption] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  const storageKey = user?.id
+    ? `mytrine-consultation:${user.id}`
+    : "mytrine-consultation:guest";
+
+  const saveConsultation = (records: AnswerRecord[]) => {
+    const firstName =
+      user?.firstName ||
+      user?.fullName?.trim().split(/\s+/)[0] ||
+      "there";
+
+    window.localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        completedAt: new Date().toISOString(),
+        name: firstName,
+        consultationName:
+          records.find((record) =>
+            record.question.toLowerCase().includes("name")
+          )?.answer || firstName,
+        responses: records,
+      })
+    );
+  };
+
+  const finishConsultation = (records: AnswerRecord[]) => {
+    saveConsultation(records);
+    setCurrentQuestion({
+      section: "Completed",
+      question:
+        "Great, I have collected all your details. Your consultation is completed.",
+      options: [],
+      completed: true,
+      questionNumber: records.length,
+      totalQuestions: records.length,
+    });
+
+    if (!onClose) {
+      window.setTimeout(() => router.push("/home"), 1200);
+    }
+  };
 
   const loadQuestion = async (updatedAnswers: string[]) => {
     const apiMessages = updatedAnswers.map((answer) => ({
@@ -49,28 +105,49 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
 
     const data = await res.json();
 
-    setCurrentQuestion({
+    const nextQuestion = {
       section: data.section,
       question: data.question,
       options: data.options || [],
       completed: data.completed || false,
+      inputType: data.inputType,
+      placeholder: data.placeholder,
       questionNumber: data.questionNumber,
       totalQuestions: data.totalQuestions,
-    });
+    };
+
+    setCurrentQuestion(nextQuestion);
+    return nextQuestion;
   };
 
   const handleNext = async () => {
     if (!selectedOption || loading) return;
 
-    const updatedAnswers = [...answers, selectedOption];
+    const cleanAnswer = selectedOption.trim();
+    if (!cleanAnswer) return;
+
+    const updatedAnswers = [...answers, cleanAnswer];
+    const updatedRecords = [
+      ...answerRecords,
+      {
+        answer: cleanAnswer,
+        question: currentQuestion.question,
+        section: currentQuestion.section,
+      },
+    ];
 
     setLoading(true);
     setErrorMessage("");
 
     try {
-      await loadQuestion(updatedAnswers);
       setAnswers(updatedAnswers);
+      setAnswerRecords(updatedRecords);
       setSelectedOption("");
+      const nextQuestion = await loadQuestion(updatedAnswers);
+
+      if (nextQuestion.completed) {
+        finishConsultation(updatedRecords);
+      }
     } catch {
       setErrorMessage("Could not load the next question. Please try again.");
     } finally {
@@ -82,14 +159,27 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
     if (loading || currentQuestion.completed) return;
 
     const updatedAnswers = [...answers, "Skipped"];
+    const updatedRecords = [
+      ...answerRecords,
+      {
+        answer: "Skipped",
+        question: currentQuestion.question,
+        section: currentQuestion.section,
+      },
+    ];
 
     setLoading(true);
     setErrorMessage("");
 
     try {
-      await loadQuestion(updatedAnswers);
       setAnswers(updatedAnswers);
+      setAnswerRecords(updatedRecords);
       setSelectedOption("");
+      const nextQuestion = await loadQuestion(updatedAnswers);
+
+      if (nextQuestion.completed) {
+        finishConsultation(updatedRecords);
+      }
     } catch {
       setErrorMessage("Could not skip this question. Please try again.");
     } finally {
@@ -99,6 +189,7 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
 
   const restart = () => {
     setAnswers([]);
+    setAnswerRecords([]);
     setSelectedOption("");
     setCurrentQuestion(firstQuestion);
   };
@@ -147,26 +238,38 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
               <p style={styles.errorMessage}>{errorMessage}</p>
             ) : null}
 
-            <div
-              style={{
-                ...styles.options,
-                gridTemplateColumns:
-                  currentQuestion.options.length === 2 ? "1fr 1fr" : "1fr",
-              }}
-            >
-              {currentQuestion.options.map((option) => (
-                <button
-                  key={option}
-                  onClick={() => setSelectedOption(option)}
-                  style={{
-                    ...styles.option,
-                    ...(selectedOption === option ? styles.selected : {}),
-                  }}
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
+            {currentQuestion.inputType ? (
+              <input
+                autoFocus
+                inputMode={currentQuestion.inputType === "number" ? "numeric" : "text"}
+                onChange={(event) => setSelectedOption(event.target.value)}
+                placeholder={currentQuestion.placeholder}
+                style={styles.input}
+                type={currentQuestion.inputType}
+                value={selectedOption}
+              />
+            ) : (
+              <div
+                style={{
+                  ...styles.options,
+                  gridTemplateColumns:
+                    currentQuestion.options.length === 2 ? "1fr 1fr" : "1fr",
+                }}
+              >
+                {currentQuestion.options.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setSelectedOption(option)}
+                    style={{
+                      ...styles.option,
+                      ...(selectedOption === option ? styles.selected : {}),
+                    }}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <button
               onClick={handleNext}
@@ -181,10 +284,9 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
           </>
         ) : (
           <div style={styles.completed}>
-            <h2>Consultation Completed</h2>
+            <h2>Your AI Transformation Blueprint is ready.</h2>
             <p>
-              AI has collected all details. Now we can generate your
-              transformation blueprint.
+              AI has analyzed your answers and is generating your personalized dashboard.
             </p>
             <div style={styles.completedActions}>
               {onClose ? (
@@ -305,6 +407,21 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "17px",
     fontWeight: "bold",
     cursor: "pointer",
+  },
+  input: {
+    minHeight: "64px",
+    borderRadius: "18px",
+    borderWidth: "1.5px",
+    borderStyle: "solid",
+    borderColor: "rgba(255, 255, 255, 0.16)",
+    background: "rgba(255, 255, 255, 0.06)",
+    color: "#fff",
+    fontSize: "18px",
+    fontWeight: "bold",
+    marginBottom: "28px",
+    outline: "none",
+    padding: "0 18px",
+    width: "100%",
   },
   selected: {
     background: "linear-gradient(135deg, #4ade80, #10b981)",
