@@ -5,9 +5,9 @@ import SiteFooter from './site-footer'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'MyTrine — Zero Effort. Maximum Transformation.',
+  title: 'TransformX - AI Fitness and Body Transformation App',
   description:
-    'AI-powered 90-day body transformation for the current generation. Get a personalized plan with diet, workouts, food ordering, budget tracking, and before/after vault.',
+    'Premium AI-powered fitness and body transformation app with body analysis, personalized workouts, diet charts, food ordering assist, budget planning, daily tracking, and before-after reports.',
 }
 
 export default function RootLayout({

@@ -11,6 +11,7 @@
   "dependencies": {
     "@ai-sdk/groq": "^3.0.41",
     "@clerk/nextjs": "^7.5.2",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "ai": "^6.0.205",
     "groq-sdk": "^1.2.1",
     "next": "16.2.9",
