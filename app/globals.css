@@ -14,10 +14,18 @@
   --foreground: #0f172a;
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 .section-eyebrow {
@@ -35,7 +43,73 @@ body {
 }
 
 html {
+  max-width: 100%;
+  overflow-x: hidden;
   scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+.mytrine-hero-grid {
+  grid-template-columns: 1fr;
+}
+
+.mytrine-hero-dashboard {
+  min-width: 0;
+  width: 100%;
+}
+
+.mytrine-dashboard-grid {
+  grid-template-columns: 1fr;
+}
+
+.mytrine-mobile-clamp {
+  width: min(100%, calc(100vw - 5rem));
+  max-width: calc(100vw - 5rem);
+}
+
+@media (min-width: 640px) {
+  .mytrine-mobile-clamp {
+    width: auto;
+    max-width: 100%;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mytrine-hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .mytrine-dashboard-grid {
+    grid-template-columns: minmax(150px, 0.72fr) minmax(140px, 0.56fr) minmax(360px, 1.72fr);
+  }
+}
+
+@media (min-width: 1360px) {
+  .mytrine-hero-dashboard {
+    min-width: 700px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .mytrine-hero-dashboard {
+    min-width: 740px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .mytrine-hero-dashboard {
+    min-width: 760px;
+  }
 }
 
 @keyframes message-in {

@@ -1,188 +1,231 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import type { Dispatch, ReactNode, SetStateAction } from "react";
+import {
+  BlueprintCard,
+  FeedbackCard,
+  MealCard,
+  ProgressCard,
+} from "@/components/journey-cards";
+import { buildAiAdjustment, createInitialProgress, generateBlueprint } from "@/lib/transformation";
+import {
+  STORAGE_KEYS,
+  type Blueprint,
+  type ConsultationAnswers,
+  type Feedback,
+  type Progress,
+} from "@/types/transformation";
 import ProfileMenu from "./profile-menu";
 
-type AnswerRecord = {
-  answer: string;
-  question: string;
-  section: string;
+type CompletionState = {
+  meals: boolean;
+  workout: boolean;
+  water: boolean;
 };
 
-type ConsultationData = {
-  consultationName?: string;
-  completedAt: string;
-  name?: string;
-  responses: AnswerRecord[];
-};
+const today = () => new Date().toISOString().slice(0, 10);
 
-function pick(records: AnswerRecord[], matcher: string) {
-  return (
-    records.find((record) =>
-      record.question.toLowerCase().includes(matcher.toLowerCase())
-    )?.answer || ""
-  );
+function readJson<T>(key: string): T | null {
+  try {
+    const raw = window.localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : null;
+  } catch {
+    window.localStorage.removeItem(key);
+    return null;
+  }
 }
 
-function currentWeightFromRange(range: string) {
-  const numeric = Number(range.replace(/[^\d.]/g, ""));
-  if (numeric > 0) return numeric;
-  if (range.includes("Below 50")) return 48;
-  if (range.includes("50-70")) return 62;
-  if (range.includes("71-90")) return 82;
-  if (range.includes("Above 90")) return 95;
-  return 75;
-}
-
-function targetWeightFromAnswer(currentWeight: number, target: string, goal: string) {
-  const numeric = Number(target.replace(/[^\d.]/g, ""));
-  if (numeric > 0) return numeric;
-  if (target.includes("Lose 10")) return currentWeight - 10;
-  if (target.includes("Lose 5")) return currentWeight - 5;
-  if (target.includes("Gain 5")) return currentWeight + 5;
-  if (goal.includes("Muscle Gain") || goal.includes("Weight Gain")) return currentWeight + 5;
-  return currentWeight;
-}
-
-function caloriesFor(goal: string, activity: string) {
-  const activityBoost = activity.includes("High") || activity.includes("Very") ? 180 : activity.includes("Medium") ? 90 : 0;
-  if (goal.includes("Weight Loss")) return 1650 + activityBoost;
-  if (goal.includes("Muscle") || goal.includes("Weight Gain")) return 2450 + activityBoost;
-  return 2050 + activityBoost;
-}
-
-function buildDashboard(data: ConsultationData | null, fallbackName: string) {
-  const records = data?.responses || [];
-  const consultationName = pick(records, "name");
-  const age = pick(records, "age") || "Not provided";
-  const height = pick(records, "height") || "Not provided";
-  const goal = pick(records, "main fitness goal") || "Weight Loss";
-  const currentWeightRange = pick(records, "current weight") || "95";
-  const targetAnswer = pick(records, "target weight") || "75";
-  const foodPreference = pick(records, "food preference") || "Non-Vegetarian";
-  const foodStyle = pick(records, "food style") || "South Indian";
-  const foodType = pick(records, "type of food") || "Both";
-  const activity = pick(records, "activity level") || "Medium";
-  const workout = pick(records, "exercise currently") || "Walking Only";
-  const schedule = pick(records, "daily schedule") || "Flexible";
-  const health = pick(records, "health condition") || "No Issues";
-  const sleep = pick(records, "sleep") || "7-8 Hours";
-  const water = pick(records, "water") || "2-3L";
-  const dailyBudget = pick(records, "daily food budget") || "Rs.150-Rs.300";
-  const ordering = pick(records, "food ordering option") || "Zomato";
-  const planType = pick(records, "AI create") || "Full 3-Month Plan";
-
-  const currentWeight = currentWeightFromRange(currentWeightRange);
-  const targetWeight = targetWeightFromAnswer(currentWeight, targetAnswer, goal);
-  const totalChange = Math.abs(currentWeight - targetWeight);
-  const direction = targetWeight > currentWeight ? "gain" : targetWeight < currentWeight ? "loss" : "maintenance";
-  const calories = caloriesFor(goal, activity);
-  const protein = direction === "gain" ? 125 : direction === "loss" ? 110 : 100;
-  const name = data?.consultationName || consultationName || data?.name || fallbackName || "there";
-  const heightLabel = height === "Not provided" ? height : `${height}cm`;
-  const meal =
-    foodPreference.includes("Vegetarian") || foodPreference.includes("Vegan")
-      ? `${foodStyle} Paneer Protein Bowl`
-      : `${foodStyle} Grilled Chicken Bowl`;
-  const workoutPlan = workout.includes("Gym")
-    ? "4-day strength split"
-    : workout.includes("Yoga")
-      ? "Yoga + mobility routine"
-      : "Home strength + walking";
-
-  return {
-    name,
-    age,
-    height,
-    heightLabel,
-    goal,
-    planType,
-    currentWeight,
-    targetWeight,
-    totalChange,
-    direction,
-    calories,
-    protein,
-    meal,
-    foodType,
-    dailyBudget,
-    ordering,
-    activity,
-    schedule,
-    health,
-    workoutPlan,
-    sleep,
-    water,
-  };
+function progressPercent(blueprint: Blueprint, progress: Progress) {
+  const total = Math.max(Math.abs(blueprint.currentWeight - blueprint.targetWeight), 1);
+  const done = Math.abs(blueprint.currentWeight - progress.currentWeight);
+  return Math.min(100, Math.max(0, Math.round((done / total) * 100)));
 }
 
 export default function PersonalizedDashboardClient() {
   const router = useRouter();
-  const { isLoaded, user } = useUser();
-  const [consultation, setConsultation] = useState<ConsultationData | null>(null);
-  const [hasCheckedStorage, setHasCheckedStorage] = useState(false);
-
-  const fallbackName =
-    user?.firstName ||
-    user?.fullName?.trim().split(/\s+/)[0] ||
-    user?.primaryEmailAddress?.emailAddress?.split("@")[0] ||
-    "there";
+  const [consultation, setConsultation] = useState<ConsultationAnswers | null>(null);
+  const [blueprint, setBlueprint] = useState<Blueprint | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
+  const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
+  const [completion, setCompletion] = useState<CompletionState>({
+    meals: false,
+    workout: false,
+    water: false,
+  });
+  const [feedbackForm, setFeedbackForm] = useState({
+    energy: "Good",
+    hunger: "Normal",
+    fullness: "Comfortable",
+    likedMeal: "Yes",
+    note: "",
+  });
+  const [orderStatus, setOrderStatus] = useState<Blueprint["dailyPlan"]["mealOrder"]["status"]>("Preparing");
+  const [checkedStorage, setCheckedStorage] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded) return;
-
-    const userKey = user?.id
-      ? `mytrine-consultation:${user.id}`
-      : "mytrine-consultation:guest";
-    const raw = window.localStorage.getItem(userKey);
-
-    if (!raw) {
-      queueMicrotask(() => setHasCheckedStorage(true));
+    const savedConsultation = readJson<ConsultationAnswers>(STORAGE_KEYS.consultationAnswers);
+    if (!savedConsultation) {
       router.replace("/consultation");
       return;
     }
 
-    try {
-      const parsed = JSON.parse(raw) as ConsultationData;
-      queueMicrotask(() => setConsultation(parsed));
-    } catch {
-      window.localStorage.removeItem(userKey);
-      router.replace("/consultation");
-    } finally {
-      queueMicrotask(() => setHasCheckedStorage(true));
+    const savedBlueprint =
+      readJson<Blueprint>(STORAGE_KEYS.transformationBlueprint) ||
+      generateBlueprint(savedConsultation);
+    const savedProgress =
+      readJson<Progress>(STORAGE_KEYS.userProgress) ||
+      createInitialProgress(savedBlueprint);
+    const savedFeedback = readJson<Feedback[]>(STORAGE_KEYS.dailyFeedback) || [];
+    const todayCompletion = savedProgress.dailyCompletion.find((item) => item.date === today());
+
+    window.localStorage.setItem(
+      STORAGE_KEYS.transformationBlueprint,
+      JSON.stringify(savedBlueprint)
+    );
+    window.localStorage.setItem(STORAGE_KEYS.userProgress, JSON.stringify(savedProgress));
+
+    queueMicrotask(() => {
+      setConsultation(savedConsultation);
+      setBlueprint(savedBlueprint);
+      setProgress(savedProgress);
+      setFeedbackList(savedFeedback);
+      setOrderStatus(savedBlueprint.dailyPlan.mealOrder.status);
+      setCompletion({
+        meals: todayCompletion?.meals || false,
+        workout: todayCompletion?.workout || false,
+        water: todayCompletion?.water || false,
+      });
+      setCheckedStorage(true);
+    });
+  }, [router]);
+
+  const completionScore = useMemo(() => {
+    const done = [completion.meals, completion.workout, completion.water].filter(Boolean).length;
+    return Math.round((done / 3) * 100);
+  }, [completion]);
+
+  const percent = blueprint && progress ? progressPercent(blueprint, progress) : 0;
+  const latestFeedback = feedbackList[feedbackList.length - 1];
+
+  const updateCompletion = (key: keyof CompletionState) => {
+    if (!blueprint || !progress) return;
+    const nextCompletion = { ...completion, [key]: !completion[key] };
+    const filtered = progress.dailyCompletion.filter((item) => item.date !== today());
+    const nextCompletedDays =
+      Object.values(nextCompletion).every(Boolean) &&
+      !progress.dailyCompletion.some((item) => item.date === today() && item.meals && item.workout && item.water)
+        ? progress.completedDays + 1
+        : progress.completedDays;
+    const movement = blueprint.direction === "loss" ? -0.2 : blueprint.direction === "gain" ? 0.15 : 0;
+    const nextProgress: Progress = {
+      ...progress,
+      lastUpdatedAt: new Date().toISOString(),
+      completedDays: nextCompletedDays,
+      currentWeight: Object.values(nextCompletion).every(Boolean)
+        ? Math.round((progress.currentWeight + movement) * 10) / 10
+        : progress.currentWeight,
+      transformationScore: Math.max(progress.transformationScore, completionScore),
+      dailyCompletion: [
+        ...filtered,
+        {
+          date: today(),
+          meals: nextCompletion.meals,
+          workout: nextCompletion.workout,
+          water: nextCompletion.water,
+        },
+      ],
+    };
+
+    setCompletion(nextCompletion);
+    setProgress(nextProgress);
+    window.localStorage.setItem(STORAGE_KEYS.userProgress, JSON.stringify(nextProgress));
+  };
+
+  const submitFeedback = () => {
+    if (!blueprint) return;
+    const nextFeedback: Feedback = {
+      date: today(),
+      energy: feedbackForm.energy,
+      hunger: feedbackForm.hunger,
+      fullness: feedbackForm.fullness,
+      likedMeal: feedbackForm.likedMeal === "Yes",
+      completedMeals: completion.meals,
+      completedWorkout: completion.workout,
+      completedWater: completion.water,
+      note: feedbackForm.note.trim(),
+      aiAdjustment: "",
+    };
+    nextFeedback.aiAdjustment = buildAiAdjustment(nextFeedback, blueprint);
+    const nextFeedbackList = [...feedbackList.filter((item) => item.date !== today()), nextFeedback];
+    setFeedbackList(nextFeedbackList);
+    setFeedbackForm((current) => ({ ...current, note: "" }));
+    window.localStorage.setItem(STORAGE_KEYS.dailyFeedback, JSON.stringify(nextFeedbackList));
+  };
+
+  const advanceOrder = () => {
+    const next: Blueprint["dailyPlan"]["mealOrder"]["status"] =
+      orderStatus === "Planned"
+        ? "Ordering"
+        : orderStatus === "Ordering"
+          ? "Preparing"
+          : orderStatus === "Preparing"
+            ? "Arriving"
+            : orderStatus === "Arriving"
+              ? "Delivered"
+              : "Delivered";
+    setOrderStatus(next);
+    if (blueprint) {
+      const nextBlueprint = {
+        ...blueprint,
+        dailyPlan: {
+          ...blueprint.dailyPlan,
+          mealOrder: { ...blueprint.dailyPlan.mealOrder, status: next },
+        },
+      };
+      setBlueprint(nextBlueprint);
+      window.localStorage.setItem(
+        STORAGE_KEYS.transformationBlueprint,
+        JSON.stringify(nextBlueprint)
+      );
     }
-  }, [isLoaded, router, user]);
+  };
 
-  const dashboard = useMemo(
-    () => buildDashboard(consultation, fallbackName),
-    [consultation, fallbackName]
-  );
-
-  if (!isLoaded || !hasCheckedStorage || !consultation) {
+  if (!checkedStorage || !consultation || !blueprint || !progress) {
     return (
       <main className="grid min-h-screen place-items-center bg-[#03070f] px-5 text-white">
         <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 text-center shadow-[0_30px_90px_rgba(0,0,0,0.32)]">
-          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#b9ff4f]">MyTrine AI</p>
-          <h1 className="mt-3 text-3xl font-black">Preparing your dashboard</h1>
-          <p className="mt-3 text-sm font-bold text-[#8fa6ba]">Redirecting to consultation if your blueprint is not ready.</p>
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#b9ff4f]">
+            Creating Dashboard...
+          </p>
+          <h1 className="mt-3 text-3xl font-black">Checking your blueprint</h1>
+          <p className="mt-3 text-sm font-bold text-[#8fa6ba]">
+            If your assessment is missing, MyTrine will send you back to consultation.
+          </p>
         </div>
       </main>
     );
   }
+
+  const mealOrder = { ...blueprint.dailyPlan.mealOrder, status: orderStatus };
 
   return (
     <main className="min-h-screen bg-[#03070f] px-5 py-6 text-white lg:px-8">
       <div className="mx-auto max-w-[1520px]">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-5">
           <Link href="/" className="flex items-center gap-3">
-            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[linear-gradient(135deg,#b9ff4f,#00d474)] text-xl font-black text-[#04100b]">M</span>
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-[linear-gradient(135deg,#b9ff4f,#00d474)] text-xl font-black text-[#04100b]">
+              M
+            </span>
             <span className="text-2xl font-black">MyTrine AI</span>
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/consultation" className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-[#dce8f5] transition hover:border-[#b9ff4f]/30">
+            <Link
+              href="/consultation"
+              className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-black text-[#dce8f5]"
+            >
               Retake Assessment
             </Link>
             <ProfileMenu />
@@ -191,102 +234,167 @@ export default function PersonalizedDashboardClient() {
 
         <section className="grid gap-6 py-8 lg:grid-cols-[1fr_0.42fr]">
           <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(145deg,rgba(13,24,33,0.94),rgba(4,9,16,0.98))] p-6 shadow-[0_32px_100px_rgba(0,0,0,0.34)] lg:p-8">
-            <p className="text-sm font-black uppercase tracking-[0.24em] text-[#b9ff4f]">Personalized Dashboard</p>
+            <p className="text-sm font-black uppercase tracking-[0.24em] text-[#b9ff4f]">
+              Personalized Dashboard
+            </p>
             <h1 className="mt-4 text-4xl font-black leading-tight md:text-6xl">
-              Hello, {dashboard.name} 👋
+              Hello, {blueprint.userName} 👋
             </h1>
             <p className="mt-5 max-w-3xl text-lg leading-8 text-[#abc1d6]">
-              Your AI blueprint is built from your consultation responses: age {dashboard.age}, {dashboard.heightLabel} height, {dashboard.goal.toLowerCase()}, {dashboard.activity.toLowerCase()} activity, {dashboard.foodType.toLowerCase()} meals, and a {dashboard.dailyBudget} food budget.
+              MyTrine AI is managing your {blueprint.durationDays}-day journey from {blueprint.currentWeight}kg to {blueprint.targetWeight}kg with nutrition, ordering, workouts, tracking, and feedback adjustments.
             </p>
 
-            <div className="mt-8 grid gap-4 md:grid-cols-4">
-              {[
-                ["Current", `${dashboard.currentWeight}kg`],
-                ["Target", `${dashboard.targetWeight}kg`],
-                ["Change", `${dashboard.totalChange}kg ${dashboard.direction}`],
-                ["Days Remaining", "90"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-3xl border border-white/10 bg-white/[0.045] p-5">
-                  <p className="text-xs font-black uppercase tracking-[0.14em] text-[#71859d]">{label}</p>
-                  <p className="mt-2 text-2xl font-black">{value}</p>
-                </div>
-              ))}
+            <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <BlueprintCard label="Current Weight" value={`${progress.currentWeight}kg`} />
+              <BlueprintCard label="Target Weight" value={`${blueprint.targetWeight}kg`} />
+              <BlueprintCard label="Days Remaining" value={`${Math.max(blueprint.durationDays - progress.completedDays, 0)}`} />
+              <BlueprintCard label="Goal Progress" value={`${percent}%`} detail={`${blueprint.goalProbability}% goal probability`} />
             </div>
           </div>
 
           <aside className="rounded-[2rem] border border-[#b9ff4f]/16 bg-[#b9ff4f]/8 p-6 shadow-[0_24px_80px_rgba(0,0,0,0.28)]">
-            <p className="text-sm font-black uppercase tracking-[0.2em] text-[#b9ff4f]">AI Summary</p>
+            <p className="text-sm font-black uppercase tracking-[0.2em] text-[#b9ff4f]">Today&apos;s AI Plan</p>
             <div className="mt-5 space-y-4">
-              <SummaryRow label="Daily Calories" value={`${dashboard.calories} kcal`} />
-              <SummaryRow label="Protein Target" value={`${dashboard.protein}g`} />
-              <SummaryRow label="Water Target" value={dashboard.water} />
-              <SummaryRow label="Sleep Signal" value={dashboard.sleep} />
-              <SummaryRow label="Health Note" value={dashboard.health} />
+              <ProgressCard label="Calories" value={`${blueprint.dailyCalorieTarget}`} helper="AI nutrition target" />
+              <ProgressCard label="Protein" value={`${blueprint.proteinTarget}g`} helper="Daily protein target" />
+              <ProgressCard label="Water" value={`${blueprint.waterTargetLiters}L`} helper="AI hydration target" />
             </div>
           </aside>
         </section>
 
-        <section className="grid gap-5 pb-10 lg:grid-cols-3">
-          <DashboardPanel title="Transformation Blueprint">
+        <section className="grid gap-5 pb-8 lg:grid-cols-3">
+          <DashboardPanel title="AI Executed Today" cta="AI executes">
             <div className="space-y-3">
               {[
-                ["Week 1", `${dashboard.currentWeight - Math.sign(dashboard.currentWeight - dashboard.targetWeight) * 2}kg`],
-                ["Week 4", `${Math.round((dashboard.currentWeight * 0.72 + dashboard.targetWeight * 0.28))}kg`],
-                ["Week 8", `${Math.round((dashboard.currentWeight * 0.38 + dashboard.targetWeight * 0.62))}kg`],
-                ["Week 12", `${dashboard.targetWeight}kg`],
-              ].map(([week, weight]) => (
-                <div key={week} className="flex items-center justify-between rounded-2xl bg-[#0d1720]/90 px-4 py-3">
-                  <span className="text-sm font-bold text-[#8fa6ba]">{week}</span>
-                  <span className="text-lg font-black">{weight}</span>
+                "Breakfast scheduled",
+                "Lunch selected",
+                "Workout assigned",
+                "Water goal updated",
+                "Tomorrow's calories optimized",
+              ].map((item) => (
+                <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-[#0d1720]/88 px-4 py-3 text-sm font-black text-[#dce8f5]">
+                  <span className="grid h-6 w-6 place-items-center rounded-full bg-[#b9ff4f]/15 text-[#b9ff4f]">✓</span>
+                  {item}
                 </div>
               ))}
             </div>
           </DashboardPanel>
 
-          <DashboardPanel title="Meal Plan">
-            <div className="rounded-3xl border border-[#b9ff4f]/16 bg-[#b9ff4f]/8 p-5">
-              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#b9ff4f]">{dashboard.ordering} ready</p>
-              <h2 className="mt-4 text-2xl font-black">{dashboard.meal}</h2>
-              <p className="mt-3 text-sm font-bold leading-6 text-[#abc1d6]">
-                AI keeps meals within {dashboard.dailyBudget}, targets {dashboard.protein}g protein, and adapts around your {dashboard.foodType.toLowerCase()} preference.
-              </p>
+          <DashboardPanel title="Daily Tracking" cta="Submit Feedback">
+            <p className="text-sm font-bold leading-6 text-[#9fb4c8]">
+              AI tracks execution and protects the goal date when a step is missed.
+            </p>
+            <div className="mt-5 space-y-3">
+              <TrackingButton label="Meals completed" checked={completion.meals} onClick={() => updateCompletion("meals")} />
+              <TrackingButton label="Workout completed" checked={completion.workout} onClick={() => updateCompletion("workout")} />
+              <TrackingButton label={`${blueprint.dailyPlan.waterLiters}L water completed`} checked={completion.water} onClick={() => updateCompletion("water")} />
+            </div>
+            <div className="mt-5 rounded-2xl bg-[#0d1720] p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#71859d]">Today&apos;s Completion</p>
+              <p className="mt-2 text-3xl font-black">{completionScore}%</p>
             </div>
           </DashboardPanel>
 
-          <DashboardPanel title="Workout Plan">
-            <div className="space-y-3">
-              <SummaryRow label="Plan" value={dashboard.workoutPlan} />
-              <SummaryRow label="Activity" value={dashboard.activity} />
-              <SummaryRow label="Schedule" value={dashboard.schedule} />
-              <SummaryRow label="Recovery" value={dashboard.sleep} />
-              <SummaryRow label="AI Adjustment" value="Weekly recalibration" />
+          <DashboardPanel title="AI Food Ordering" cta={mealOrder.autoOrderingEnabled ? "Auto Ordering ON" : "User Approval"}>
+            <MealCard order={mealOrder} />
+            <button
+              onClick={advanceOrder}
+              className="mt-4 w-full rounded-2xl bg-[linear-gradient(135deg,#b9ff4f,#00d474)] px-5 py-3 text-sm font-black text-[#04100b]"
+            >
+              Update Order Status
+            </button>
+          </DashboardPanel>
+
+          <DashboardPanel title="Feedback Loop" cta="Analyze Responses">
+            <FeedbackForm
+              energy={feedbackForm.energy}
+              hunger={feedbackForm.hunger}
+              fullness={feedbackForm.fullness}
+              likedMeal={feedbackForm.likedMeal}
+              note={feedbackForm.note}
+              onChange={setFeedbackForm}
+              onSubmit={submitFeedback}
+            />
+            {latestFeedback ? (
+              <div className="mt-4 rounded-2xl border border-[#b9ff4f]/15 bg-[#b9ff4f]/8 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[#b9ff4f]">AI Adjustment</p>
+                <p className="mt-2 text-sm font-bold leading-6 text-[#dce8f5]">{latestFeedback.aiAdjustment}</p>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm font-bold text-[#9fb4c8]">
+                No feedback yet. Submit today&apos;s feedback to let AI adjust tomorrow&apos;s plan.
+              </p>
+            )}
+          </DashboardPanel>
+        </section>
+
+        <section className="grid gap-5 pb-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <DashboardPanel title="Weekly Milestones" cta="View Blueprint">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {blueprint.weeklyMilestones.map((milestone) => (
+                <div key={milestone.week} className="rounded-2xl bg-[#0d1720]/90 px-4 py-3">
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="text-sm font-bold text-[#8fa6ba]">Week {milestone.week}</span>
+                    <span className="text-lg font-black">{milestone.targetWeight}kg</span>
+                  </div>
+                  <p className="mt-1 text-xs font-bold text-[#71859d]">{milestone.focus}</p>
+                </div>
+              ))}
+            </div>
+          </DashboardPanel>
+
+          <DashboardPanel title="Before vs After Report" cta="View Report">
+            {progress.completedDays === 0 ? (
+              <p className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-sm font-bold text-[#9fb4c8]">
+                No progress data yet. Complete today&apos;s plan to begin tracking.
+              </p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-3">
+                <ProgressCard label="Before" value={`${blueprint.currentWeight}kg`} helper="Assessment start" />
+                <ProgressCard label="Now" value={`${progress.currentWeight}kg`} helper={`${progress.completedDays} days tracked`} />
+                <ProgressCard label="Score" value={`${Math.max(percent, completionScore)}%`} helper="Transformation score" />
+              </div>
+            )}
+            <div className="mt-5 flex h-28 items-end gap-3 rounded-3xl border border-white/10 bg-[#0d1720]/70 p-4">
+              {blueprint.weeklyMilestones.slice(0, 7).map((milestone, index) => (
+                <div key={milestone.week} className="flex flex-1 flex-col items-center gap-2">
+                  <div
+                    className="w-full rounded-t-2xl bg-[linear-gradient(180deg,#b9ff4f,#00d474)]"
+                    style={{ height: `${34 + index * 8}%`, opacity: progress.completedDays >= index * 7 ? 1 : 0.38 }}
+                  />
+                  <span className="text-[0.65rem] font-black text-[#71859d]">W{milestone.week}</span>
+                </div>
+              ))}
             </div>
           </DashboardPanel>
         </section>
 
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.22)] lg:p-8">
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-black uppercase tracking-[0.24em] text-[#b9ff4f]">AI Actions Today</p>
-              <h2 className="mt-3 text-3xl font-black">Generated from your answers</h2>
+        <section className="grid gap-5 pb-10 lg:grid-cols-[1fr_1fr]">
+          <DashboardPanel title="AI Optimization Engine" cta="Automatic adjustments">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <BlueprintCard label="Workout Missed" value="AI reschedules" detail="Calories and load are adjusted to protect the goal date." />
+              <BlueprintCard label="Meal Skipped" value="AI reallocates" detail="Protein and calories move into the next best meal." />
+              <BlueprintCard label="Recovery" value={blueprint.recoveryPlan} />
+              <BlueprintCard label="Goal Date" value={blueprint.expectedCompletionDate} detail={`${blueprint.goalProbability}% probability`} />
             </div>
-            <p className="max-w-xl text-sm font-bold leading-7 text-[#8fa6ba]">
-              These actions are unique to {dashboard.name}&apos;s body goal, schedule, food preferences, budget, and lifestyle signals.
-            </p>
-          </div>
-          <div className="mt-6 grid gap-3 md:grid-cols-4">
-            {[
-              `${dashboard.calories} kcal nutrition target set`,
-              `${dashboard.meal} selected`,
-              `${dashboard.workoutPlan} assigned`,
-              `${dashboard.water} water goal set`,
-              "Progress check-in scheduled",
-            ].map((item) => (
-              <div key={item} className="rounded-2xl border border-white/10 bg-[#0d1720]/90 p-4 text-sm font-black leading-6 text-[#dce8f5]">
-                {item}
-              </div>
-            ))}
-          </div>
+          </DashboardPanel>
+
+          <DashboardPanel title="Auto Ordering Roadmap" cta="Execution roadmap">
+            <div className="space-y-3">
+              {[
+                ["Phase 1", "AI meal recommendation"],
+                ["Phase 2", "Open Swiggy/Zomato order page"],
+                ["Phase 3", "User approval"],
+                ["Phase 4", "MCP integration"],
+                ["Phase 5", "Automatic ordering with permission"],
+              ].map(([phase, text]) => (
+                <div key={phase} className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#0d1720]/88 px-4 py-3">
+                  <span className="text-xs font-black uppercase tracking-[0.14em] text-[#b9ff4f]">{phase}</span>
+                  <span className="text-sm font-bold text-[#dce8f5]">{text}</span>
+                </div>
+              ))}
+            </div>
+          </DashboardPanel>
         </section>
       </div>
     </main>
@@ -295,24 +403,140 @@ export default function PersonalizedDashboardClient() {
 
 function DashboardPanel({
   children,
+  cta,
   title,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
+  cta: string;
   title: string;
 }) {
   return (
-    <article className="rounded-[1.7rem] border border-white/10 bg-[#090f18]/88 p-6 shadow-[0_24px_70px_rgba(0,0,0,0.24)]">
-      <h2 className="text-2xl font-black">{title}</h2>
-      <div className="mt-5">{children}</div>
-    </article>
+    <FeedbackCard title={title}>
+      <div className="mb-5 flex items-center justify-between gap-4">
+        <span className="rounded-full bg-[#b9ff4f]/12 px-3 py-2 text-xs font-black text-[#b9ff4f]">
+          {cta}
+        </span>
+      </div>
+      {children}
+    </FeedbackCard>
   );
 }
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function TrackingButton({
+  checked,
+  label,
+  onClick,
+}: {
+  checked: boolean;
+  label: string;
+  onClick: () => void;
+}) {
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/8 bg-[#0d1720]/88 px-4 py-3">
-      <span className="text-sm font-bold text-[#8fa6ba]">{label}</span>
-      <span className="text-sm font-black text-white">{value}</span>
+    <button
+      onClick={onClick}
+      className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left text-sm font-black transition ${
+        checked
+          ? "border-[#b9ff4f]/30 bg-[#b9ff4f]/12 text-white"
+          : "border-white/10 bg-[#0d1720]/88 text-[#9fb4c8]"
+      }`}
+    >
+      {label}
+      <span className="grid h-6 w-6 place-items-center rounded-full border border-white/15 text-xs">
+        {checked ? "✓" : ""}
+      </span>
+    </button>
+  );
+}
+
+function FeedbackForm({
+  energy,
+  fullness,
+  hunger,
+  likedMeal,
+  note,
+  onChange,
+  onSubmit,
+}: {
+  energy: string;
+  fullness: string;
+  hunger: string;
+  likedMeal: string;
+  note: string;
+  onChange: Dispatch<
+    SetStateAction<{
+      energy: string;
+      hunger: string;
+      fullness: string;
+      likedMeal: string;
+      note: string;
+    }>
+  >;
+  onSubmit: () => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <label className="block">
+        <span className="text-xs font-black uppercase tracking-[0.14em] text-[#71859d]">Energy</span>
+        <select
+          value={energy}
+          onChange={(event) => onChange((current) => ({ ...current, energy: event.target.value }))}
+          className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d1720] px-4 py-3 text-sm font-black text-white"
+        >
+          <option>Good</option>
+          <option>Low</option>
+          <option>High</option>
+        </select>
+      </label>
+      <label className="block">
+        <span className="text-xs font-black uppercase tracking-[0.14em] text-[#71859d]">Hunger</span>
+        <select
+          value={hunger}
+          onChange={(event) => onChange((current) => ({ ...current, hunger: event.target.value }))}
+          className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d1720] px-4 py-3 text-sm font-black text-white"
+        >
+          <option>Normal</option>
+          <option>High</option>
+          <option>Low</option>
+        </select>
+      </label>
+      <label className="block">
+        <span className="text-xs font-black uppercase tracking-[0.14em] text-[#71859d]">Fullness</span>
+        <select
+          value={fullness}
+          onChange={(event) => onChange((current) => ({ ...current, fullness: event.target.value }))}
+          className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d1720] px-4 py-3 text-sm font-black text-white"
+        >
+          <option>Comfortable</option>
+          <option>Still Hungry</option>
+          <option>Too Full</option>
+        </select>
+      </label>
+      <label className="block">
+        <span className="text-xs font-black uppercase tracking-[0.14em] text-[#71859d]">Liked Meal?</span>
+        <select
+          value={likedMeal}
+          onChange={(event) => onChange((current) => ({ ...current, likedMeal: event.target.value }))}
+          className="mt-2 w-full rounded-2xl border border-white/10 bg-[#0d1720] px-4 py-3 text-sm font-black text-white"
+        >
+          <option>Yes</option>
+          <option>No</option>
+        </select>
+      </label>
+      <label className="block">
+        <span className="text-xs font-black uppercase tracking-[0.14em] text-[#71859d]">Note</span>
+        <textarea
+          value={note}
+          onChange={(event) => onChange((current) => ({ ...current, note: event.target.value }))}
+          placeholder="Anything AI should adjust?"
+          className="mt-2 min-h-24 w-full resize-none rounded-2xl border border-white/10 bg-[#0d1720] px-4 py-3 text-sm font-bold text-white outline-none placeholder:text-[#71859d]"
+        />
+      </label>
+      <button
+        onClick={onSubmit}
+        className="w-full rounded-2xl bg-[linear-gradient(135deg,#b9ff4f,#00d474)] px-5 py-3 text-sm font-black text-[#04100b]"
+      >
+        Submit Feedback
+      </button>
     </div>
   );
 }

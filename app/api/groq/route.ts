@@ -27,8 +27,8 @@ const questions = [
   },
   {
     section: "Personal Details",
-    question: "What is your main fitness goal?",
-    options: ["Weight Loss", "Weight Gain", "Healthy Maintenance", "Muscle Gain"],
+    question: "What transformation goal should AI manage?",
+    options: ["Weight Loss", "Weight Gain", "Maintenance", "Lean Muscle Gain"],
   },
   {
     section: "Personal Details",
@@ -64,6 +64,11 @@ const questions = [
   },
   {
     section: "Health Details",
+    question: "Do you have any injury or movement limitation?",
+    options: ["No Injury", "Knee Pain", "Back Pain", "Shoulder Injury", "Other Injury"],
+  },
+  {
+    section: "Health Details",
     question: "Do you have any food allergy?",
     options: ["No Allergy", "Milk Allergy", "Gluten Allergy", "Nuts / Seafood Allergy"],
   },
@@ -90,10 +95,22 @@ const questions = [
   },
   {
     section: "Food Preferences",
+    question: "Any disliked foods AI should avoid?",
+    options: [],
+    inputType: "text",
+    placeholder: "Example: mushroom, fish, oats",
+  },
+  {
+    section: "Food Preferences",
     question: "How many meals do you eat per day?",
     options: ["2 Meals", "3 Meals", "4 Meals", "5+ Meals"],
   },
 
+  {
+    section: "Lifestyle Analysis",
+    question: "How much time can you give for workouts?",
+    options: ["15 Minutes", "30 Minutes", "45 Minutes", "60+ Minutes"],
+  },
   {
     section: "Lifestyle Analysis",
     question: "What is your activity level?",
@@ -137,8 +154,20 @@ const questions = [
   },
   {
     section: "Budget Analysis",
+    question: "What is your delivery location?",
+    options: [],
+    inputType: "text",
+    placeholder: "Area or city",
+  },
+  {
+    section: "Budget Analysis",
+    question: "Should AI auto-order meals when the plan matches your budget?",
+    options: ["Ask Before Ordering", "Auto Ordering ON", "Recommendations Only"],
+  },
+  {
+    section: "Budget Analysis",
     question: "What should AI create for you?",
-    options: ["Diet Plan", "Workout Plan", "Full 3-Month Plan", "Budget Estimate"],
+    options: ["Full 3-Month Plan", "Diet + Ordering Plan", "Workout + Recovery Plan", "Budget Estimate"],
   },
 ];
 

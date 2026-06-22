@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import ProfileMenu from "./profile-menu";
+import { STORAGE_KEYS, type ConsultationAnswers } from "@/types/transformation";
 
 type QuestionData = {
   section: string;
@@ -29,7 +30,7 @@ const firstQuestion: QuestionData = {
   inputType: "text",
   placeholder: "Enter your name",
   questionNumber: 1,
-  totalQuestions: 24,
+  totalQuestions: 29,
 };
 
 export default function ConsultationClient({ onClose }: { onClose?: () => void }) {
@@ -44,36 +45,34 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const storageKey = user?.id
-    ? `mytrine-consultation:${user.id}`
-    : "mytrine-consultation:guest";
-
   const saveConsultation = (records: AnswerRecord[]) => {
     const firstName =
       user?.firstName ||
       user?.fullName?.trim().split(/\s+/)[0] ||
       "there";
+    const consultationName =
+      records.find((record) => record.question.toLowerCase().includes("name"))
+        ?.answer || firstName;
+    const payload: ConsultationAnswers = {
+      completedAt: new Date().toISOString(),
+      userName: consultationName,
+      responses: records,
+    };
 
     window.localStorage.setItem(
-      storageKey,
-      JSON.stringify({
-        completedAt: new Date().toISOString(),
-        name: firstName,
-        consultationName:
-          records.find((record) =>
-            record.question.toLowerCase().includes("name")
-          )?.answer || firstName,
-        responses: records,
-      })
+      STORAGE_KEYS.consultationAnswers,
+      JSON.stringify(payload)
     );
+    window.localStorage.removeItem(STORAGE_KEYS.transformationBlueprint);
+    window.localStorage.removeItem(STORAGE_KEYS.dailyFeedback);
+    window.localStorage.removeItem(STORAGE_KEYS.userProgress);
   };
 
   const finishConsultation = (records: AnswerRecord[]) => {
     saveConsultation(records);
     setCurrentQuestion({
       section: "Completed",
-      question:
-        "Great, I have collected all your details. Your consultation is completed.",
+      question: "Your AI Transformation Blueprint is ready.",
       options: [],
       completed: true,
       questionNumber: records.length,
@@ -81,7 +80,7 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
     });
 
     if (!onClose) {
-      window.setTimeout(() => router.push("/home"), 1200);
+      window.setTimeout(() => router.push("/blueprint"), 1200);
     }
   };
 
@@ -201,7 +200,7 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
       </div>
       <div style={styles.card}>
         <div style={styles.top}>
-          <b>AI Health Consultation</b>
+          <b>AI Consultation</b>
           <div style={styles.topActions}>
             {!currentQuestion.completed ? (
               <span style={styles.progress}>
@@ -286,12 +285,20 @@ export default function ConsultationClient({ onClose }: { onClose?: () => void }
           <div style={styles.completed}>
             <h2>Your AI Transformation Blueprint is ready.</h2>
             <p>
-              AI has analyzed your answers and is generating your personalized dashboard.
+              Analyzing responses and creating your personalized blueprint.
             </p>
             <div style={styles.completedActions}>
               {onClose ? (
                 <button onClick={onClose} style={{ ...styles.next, marginTop: 0 }}>
                   Close
+                </button>
+              ) : null}
+              {!onClose ? (
+                <button
+                  onClick={() => router.push("/blueprint")}
+                  style={{ ...styles.next, marginTop: 0 }}
+                >
+                  View Blueprint
                 </button>
               ) : null}
               <button onClick={restart} style={styles.secondaryNext}>
