@@ -16,8 +16,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased">
+    <html lang="en" className="bg-background">
+      <body className="antialiased bg-background text-foreground">
         <ClerkProvider
           signInUrl="/sign-in"
           signUpUrl="/sign-up"

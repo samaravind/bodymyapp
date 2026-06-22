@@ -157,9 +157,9 @@ export default function LandingClient() {
 
 function Header() {
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#03070f]/88 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0e18]/92 backdrop-blur-xl animate-fade-in">
       <nav className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-5 lg:px-8">
-        <Link href="#home" className="flex min-w-0 items-center gap-3">
+        <Link href="#home" className="flex min-w-0 items-center gap-3 transition hover:opacity-90">
           <LogoMark />
           <span className="truncate text-xl font-black tracking-tight sm:text-2xl">MyTrine AI</span>
         </Link>
@@ -191,36 +191,36 @@ function Header() {
 function Hero() {
   return (
     <section id="home" className="relative overflow-hidden px-5 pb-16 pt-8 lg:px-8 lg:pb-20 lg:pt-12">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_75%_22%,rgba(0,212,116,0.16),transparent_30%),radial-gradient(circle_at_16%_18%,rgba(185,255,79,0.08),transparent_28%),linear-gradient(135deg,#03070f_0%,#07111d_48%,#03070f_100%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background-image:linear-gradient(rgba(185,255,79,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(185,255,79,0.2)_1px,transparent_1px)] [background-size:44px_44px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_75%_22%,rgba(0,212,116,0.2),transparent_35%),radial-gradient(circle_at_16%_18%,rgba(185,255,79,0.12),transparent_32%),linear-gradient(135deg,#0a0e18_0%,#0d1224_48%,#0a0e18_100%)]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.025] [background-image:linear-gradient(rgba(185,255,79,0.2)_1px,transparent_1px),linear-gradient(90deg,rgba(185,255,79,0.2)_1px,transparent_1px)] [background-size:44px_44px]" />
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-        <div className="min-w-0">
+        <div className="min-w-0 animate-fade-in">
           <Badge>AI-Powered Transformation Manager</Badge>
-          <h1 className="mt-6 max-w-3xl text-[2.5rem] font-black leading-[1.08] tracking-tight sm:text-6xl lg:text-[4.7rem] xl:text-[5.15rem]">
+          <h1 className="mt-6 max-w-3xl text-[2.5rem] font-black leading-[1.08] tracking-tight sm:text-6xl lg:text-[4.7rem] xl:text-[5.15rem] animate-slide-up">
             Your 90-Day Transformation.
             <span className="block bg-[linear-gradient(90deg,#f8fff2,#b9ff4f_55%,#00d474)] bg-clip-text text-transparent">
               Managed By AI.
             </span>
           </h1>
-          <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-[#afc4d8]">
+          <p className="mt-6 max-w-2xl text-base font-semibold leading-8 text-[#afc4d8] animate-slide-up" style={{ animationDelay: '0.1s' }}>
             Tell us your target body once. MyTrine AI creates your transformation blueprint, orders meals, tracks progress, and continuously optimizes your journey.
           </p>
 
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/consultation" className="inline-flex h-14 items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#b9ff4f,#00d474)] px-7 text-sm font-black text-[#031008] shadow-[0_22px_60px_rgba(0,212,116,0.24)] transition hover:-translate-y-0.5">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row animate-slide-up" style={{ animationDelay: '0.2s' }}>
+            <Link href="/consultation" className="inline-flex h-14 items-center justify-center gap-3 rounded-2xl bg-[linear-gradient(135deg,#b9ff4f,#00d474)] px-7 text-sm font-black text-[#031008] shadow-[0_22px_60px_rgba(0,212,116,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_80px_rgba(0,212,116,0.35)]">
               Start Free Assessment
               <Icon name="arrow" className="h-4 w-4" />
             </Link>
-            <Link href="#blueprint" className="inline-flex h-14 items-center justify-center gap-3 rounded-2xl border border-white/14 bg-white/[0.04] px-7 text-sm font-black text-white transition hover:border-[#b9ff4f]/35">
+            <Link href="#blueprint" className="inline-flex h-14 items-center justify-center gap-3 rounded-2xl border border-white/14 bg-white/[0.04] px-7 text-sm font-black text-white transition hover:border-[#b9ff4f]/45 hover:bg-white/[0.08]">
               Watch Demo
               <Icon name="arrow" className="h-4 w-4" />
             </Link>
           </div>
 
-          <div className="mt-6 flex flex-wrap gap-2">
-            {trustBadges.map((item) => (
-              <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-bold text-[#c6d7e8]">
+          <div className="mt-6 flex flex-wrap gap-2 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+            {trustBadges.map((item, idx) => (
+              <span key={item} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-xs font-bold text-[#c6d7e8] transition hover:border-[#b9ff4f]/30 hover:bg-white/[0.06]" style={{ animationDelay: `${0.3 + idx * 0.1}s` }}>
                 <Icon name="check" className="h-4 w-4 text-[#b9ff4f]" />
                 {item}
               </span>
@@ -236,9 +236,9 @@ function Hero() {
 
 function HeroDashboard() {
   return (
-    <div className="relative min-w-0">
-      <div className="absolute -inset-5 rounded-[3rem] bg-[#00d474]/10 blur-3xl" />
-      <div className="relative mx-auto max-w-[760px] overflow-hidden rounded-[2rem] border border-white/10 bg-[#07111d]/92 p-2 shadow-[0_40px_120px_rgba(0,0,0,0.48)] backdrop-blur-2xl sm:p-3">
+    <div className="relative min-w-0 animate-scale-in" style={{ animationDelay: '0.4s' }}>
+      <div className="absolute -inset-5 rounded-[3rem] bg-[#00d474]/15 blur-3xl animate-glow-pulse" />
+      <div className="relative mx-auto max-w-[760px] overflow-hidden rounded-[2rem] border border-white/10 bg-[#07111d]/92 p-2 shadow-[0_40px_120px_rgba(0,0,0,0.48)] backdrop-blur-2xl sm:p-3 hover:border-white/20 transition">
         <div className="rounded-[1.6rem] border border-white/10 bg-[#0a1220] p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-5">
             <div className="min-w-0">
@@ -305,12 +305,12 @@ function HeroDashboard() {
 
 function ConsultationSection() {
   return (
-    <section className="border-y border-white/8 bg-[#050a13] px-5 py-16 lg:px-8" id="consultation">
+    <section className="border-y border-white/8 bg-[linear-gradient(135deg,#050a13_0%,#0a0f1a_50%,#050a13_100%)] px-5 py-16 lg:px-8" id="consultation">
       <div className="mx-auto max-w-7xl">
         <SectionHeader eyebrow="AI Consultation" title="The AI asks the right questions first." copy="MyTrine AI starts by understanding your body, goal, food habits, budget, lifestyle, and constraints before creating any plan." />
         <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {consultationItems.map(([title, copy], index) => (
-            <article key={title} className="rounded-[1.7rem] border border-white/10 bg-[#0a1220]/88 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)]">
+            <article key={title} className="rounded-[1.7rem] border border-white/10 bg-[#0a1220]/88 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.24)] transition hover:border-[#b9ff4f]/25 hover:shadow-[0_28px_90px_rgba(0,0,0,0.3)] animate-fade-in" style={{ animationDelay: `${index * 0.08}s` }}>
               <span className="grid h-11 w-11 place-items-center rounded-2xl border border-[#b9ff4f]/20 bg-[#b9ff4f]/10 text-sm font-black text-[#b9ff4f]">{index + 1}</span>
               <h3 className="mt-6 text-xl font-black">{title}</h3>
               <p className="mt-3 text-sm font-bold leading-6 text-[#9fb4c8]">{copy}</p>
@@ -467,12 +467,12 @@ function ResultsSection() {
 
 function PricingSection() {
   return (
-    <section id="pricing" className="px-5 py-16 lg:px-8">
+    <section id="pricing" className="px-5 py-16 lg:px-8 bg-[linear-gradient(135deg,transparent_0%,rgba(185,255,79,0.03)_50%,transparent_100%)]">
       <div className="mx-auto max-w-7xl">
         <SectionHeader eyebrow="Pricing" title="Choose your AI transformation level." copy="Start simple, then upgrade when you want more automation and deeper accountability." />
         <div className="mt-10 grid gap-5 lg:grid-cols-3">
           {pricing.map(([name, price, copy, items], index) => (
-            <article key={name} className={`relative rounded-[1.8rem] border p-7 ${index === 1 ? "border-[#b9ff4f]/45 bg-[linear-gradient(145deg,#122016,#07100d)] shadow-[0_36px_110px_rgba(0,0,0,0.48),0_0_54px_rgba(185,255,79,0.08)]" : "border-white/10 bg-[#0a1220]/88 shadow-[0_22px_70px_rgba(0,0,0,0.22)]"}`}>
+            <article key={name} className={`relative rounded-[1.8rem] border p-7 transition animate-fade-in ${index === 1 ? "border-[#b9ff4f]/45 bg-[linear-gradient(145deg,#122016,#07100d)] shadow-[0_36px_110px_rgba(0,0,0,0.48),0_0_54px_rgba(185,255,79,0.08)] hover:shadow-[0_40px_130px_rgba(0,0,0,0.52),0_0_70px_rgba(185,255,79,0.12)]" : "border-white/10 bg-[#0a1220]/88 shadow-[0_22px_70px_rgba(0,0,0,0.22)] hover:border-white/20 hover:shadow-[0_28px_90px_rgba(0,0,0,0.32)]"}`} style={{ animationDelay: `${index * 0.1}s` }}>
               {index === 1 ? <span className="absolute right-5 top-5 rounded-full bg-[#b9ff4f] px-3 py-1 text-xs font-black text-[#031008]">Most Popular</span> : null}
               <h3 className="text-2xl font-black">{name}</h3>
               <p className="mt-4 text-4xl font-black text-[#b9ff4f]">{price}</p>
@@ -495,12 +495,12 @@ function PricingSection() {
 
 function TestimonialsSection() {
   return (
-    <section id="testimonials" className="border-y border-white/8 bg-[#050a13] px-5 py-16 lg:px-8">
+    <section id="testimonials" className="border-y border-white/8 bg-[linear-gradient(135deg,#050a13_0%,#0a0f1a_50%,#050a13_100%)] px-5 py-16 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <SectionHeader eyebrow="Testimonials" title="Built for people who do not want another tracker." copy="MyTrine AI helps users save decision time, follow the plan, and understand what to do next." />
         <div className="mt-10 grid gap-4 lg:grid-cols-3">
-          {testimonials.map(([name, role, quote]) => (
-            <article key={name} className="rounded-[1.7rem] border border-white/10 bg-[#0a1220]/88 p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)]">
+          {testimonials.map(([name, role, quote], index) => (
+            <article key={name} className="rounded-[1.7rem] border border-white/10 bg-[#0a1220]/88 p-6 shadow-[0_22px_70px_rgba(0,0,0,0.22)] transition hover:border-[#b9ff4f]/25 hover:shadow-[0_28px_90px_rgba(0,0,0,0.3)] animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
               <p className="text-lg font-black text-[#b9ff4f]">*****</p>
               <p className="mt-5 text-base font-bold leading-7 text-[#dce8f5]">
                 &quot;{quote}&quot;
@@ -517,12 +517,12 @@ function TestimonialsSection() {
 
 function FAQSection() {
   return (
-    <section id="faq" className="px-5 py-16 lg:px-8">
+    <section id="faq" className="px-5 py-16 lg:px-8 bg-[linear-gradient(135deg,transparent_0%,rgba(185,255,79,0.03)_50%,transparent_100%)]">
       <div className="mx-auto max-w-4xl">
         <SectionHeader eyebrow="FAQ" title="Questions before your first assessment." copy="A clear product should answer the basics before asking for commitment." />
         <div className="mt-10 grid gap-4">
-          {faqs.map(([question, answer]) => (
-            <article key={question} className="rounded-3xl border border-white/10 bg-[#0a1220]/88 p-6 shadow-[0_18px_55px_rgba(0,0,0,0.2)]">
+          {faqs.map(([question, answer], index) => (
+            <article key={question} className="rounded-3xl border border-white/10 bg-[#0a1220]/88 p-6 shadow-[0_18px_55px_rgba(0,0,0,0.2)] transition hover:border-[#b9ff4f]/25 hover:shadow-[0_22px_70px_rgba(0,0,0,0.3)] animate-fade-in" style={{ animationDelay: `${index * 0.06}s` }}>
               <h3 className="text-lg font-black">{question}</h3>
               <p className="mt-3 text-sm font-bold leading-7 text-[#afc4d8]">{answer}</p>
             </article>
@@ -578,7 +578,7 @@ function SectionHeader({ eyebrow, title, copy }: { eyebrow: string; title: strin
 
 function FeatureTile({ title, copy, icon, index, compact = false }: FeatureCard & { index: number; compact?: boolean }) {
   return (
-    <article className={`rounded-[1.7rem] border border-white/10 bg-[#0a1220]/88 shadow-[0_22px_70px_rgba(0,0,0,0.24)] transition hover:-translate-y-1 hover:border-[#b9ff4f]/30 ${compact ? "p-5" : "p-6"}`}>
+    <article className={`rounded-[1.7rem] border border-white/10 bg-[#0a1220]/88 shadow-[0_22px_70px_rgba(0,0,0,0.24)] transition hover:-translate-y-1 hover:border-[#b9ff4f]/30 hover:shadow-[0_28px_90px_rgba(0,0,0,0.32)] animate-fade-in ${compact ? "p-5" : "p-6"}`} style={{ animationDelay: `${index * 0.05}s` }}>
       <div className="flex items-center justify-between gap-4">
         <span className="grid h-12 w-12 place-items-center rounded-2xl border border-[#b9ff4f]/20 bg-[#b9ff4f]/10 text-[#b9ff4f]">
           <Icon name={icon} className="h-6 w-6" />
