@@ -2,12 +2,14 @@ import type { Metadata } from 'next'
 import { ClerkProvider } from '@clerk/nextjs'
 import AccountSessionSync from './account-session-sync'
 import SiteFooter from './site-footer'
+import LenisProvider from '@/components/lenis-provider'
+import 'lenis/dist/lenis.css'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'TransformX - AI Fitness and Body Transformation App',
+  title: 'MyTrine AI | Personalized AI Fitness Coach',
   description:
-    'Premium AI-powered fitness and body transformation app with body analysis, personalized workouts, diet charts, food ordering assist, budget planning, daily tracking, and before-after reports.',
+    'MyTrine AI creates personalized workout, nutrition, budget, habit, and progress plans for complete body transformation.',
 }
 
 export default function RootLayout({
@@ -24,9 +26,11 @@ export default function RootLayout({
           afterSignOutUrl="/"
           afterMultiSessionSingleSignOutUrl="/"
         >
-          <AccountSessionSync />
-          {children}
-          <SiteFooter />
+          <LenisProvider>
+            <AccountSessionSync />
+            {children}
+            <SiteFooter />
+          </LenisProvider>
         </ClerkProvider>
       </body>
     </html>

@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        margin: 0;
+        background: #111;
+        color: #fff;
+        font: 16px system-ui, sans-serif;
+        padding: 24px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 16px;
+      }
+      video {
+        width: 100%;
+        border: 1px solid #444;
+        background: #000;
+      }
+      h1 { margin: 0 0 16px; }
+      p { color: #bbb; }
+    </style>
+  </head>
+  <body>
+    <h1>Video frame sampler</h1>
+    <p id="meta">Loading video...</p>
+    <div id="frames" class="grid"></div>
+    <script>
+      const src = "file:///C:/Users/Sam%20Aravind/Videos/shndgh.mp4";
+      const frames = document.getElementById("frames");
+      const meta = document.getElementById("meta");
+      const probe = document.createElement("video");
+      probe.src = src;
+      probe.muted = true;
+      probe.playsInline = true;
+
+      function waitFor(video, event) {
+        return new Promise((resolve) => video.addEventListener(event, resolve, { once: true }));
+      }
+
+      probe.addEventListener("loadedmetadata", async () => {
+        meta.textContent = `duration=${probe.duration.toFixed(2)}s size=${probe.videoWidth}x${probe.videoHeight}`;
+        const times = [0.4, probe.duration * 0.2, probe.duration * 0.4, probe.duration * 0.6, probe.duration * 0.8, probe.duration - 0.5];
+        for (const time of times) {
+          const wrapper = document.createElement("div");
+          const label = document.createElement("p");
+          label.textContent = `${time.toFixed(1)}s`;
+          const video = document.createElement("video");
+          video.src = src;
+          video.muted = true;
+          video.playsInline = true;
+          video.preload = "auto";
+          wrapper.append(label, video);
+          frames.append(wrapper);
+          await waitFor(video, "loadedmetadata");
+          video.currentTime = Math.min(time, Math.max(video.duration - 0.1, 0));
+          await waitFor(video, "seeked");
+        }
+        document.title = "READY";
+      });
+    </script>
+  </body>
+</html>
